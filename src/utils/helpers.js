@@ -5,30 +5,33 @@ export const isOrderingClosed = (category) => {
   
   if (!category) {
     // If no category specified, check if any ordering is allowed
-    return hour >= 18 // After 6 PM, all ordering is closed
+    return hour >= 23 // After 11 PM, all ordering is closed
   }
-  
-  switch (category) {
-    case 'Breakfast':
-      return hour >= 8 // Breakfast ordering closes at 8 AM
-    case 'Lunch':
-      return hour >= 10 // Lunch ordering closes at 10 AM
-    case 'Dinner':
-      return hour >= 18 // Dinner ordering closes at 6 PM (18:00)
+
+  const cat = String(category).toLowerCase()
+
+  switch (cat) {
+    case 'breakfast':
+      return hour >= 11 // Breakfast ordering closes at 11 AM
+    case 'lunch':
+      return hour >= 16 // Lunch ordering closes at 4 PM (16:00)
+    case 'dinner':
+      return hour >= 23 // Dinner ordering closes at 11 PM (23:00)
     default:
-      return hour >= 18
+      return hour >= 23
   }
 }
 
 // Get ordering deadline message for a category
 export const getOrderingDeadline = (category) => {
-  switch (category) {
-    case 'Breakfast':
-      return 'Orders accepted before 8:00 AM'
-    case 'Lunch':
-      return 'Orders accepted before 10:00 AM'
-    case 'Dinner':
-      return 'Orders accepted before 6:00 PM'
+  const cat = String(category || '').toLowerCase()
+  switch (cat) {
+    case 'breakfast':
+      return 'Orders accepted before 11:00 AM'
+    case 'lunch':
+      return 'Orders accepted before 4:00 PM'
+    case 'dinner':
+      return 'Orders accepted before 11:00 PM'
     default:
       return 'Check ordering times'
   }
@@ -36,22 +39,22 @@ export const getOrderingDeadline = (category) => {
 
 // Check if current time allows ordering any category
 export const hasAvailableOrdering = () => {
-  const now = new Date()
-  const hour = now.getHours()
-  return hour < 18 // Ordering available before 6 PM
+  // ordering is available if any category is still open
+  return !isOrderingClosed('breakfast') || !isOrderingClosed('lunch') || !isOrderingClosed('dinner')
 }
 
 // Get meal category icon
 export const getMealIcon = (category) => {
-  switch (category) {
-    case 'Breakfast':
-      return 'Breakfast'
-    case 'Lunch':
-      return 'Lunch'
-    case 'Dinner':
-      return 'Dinner'
+  const cat = String(category || '').toLowerCase()
+  switch (cat) {
+    case 'breakfast':
+      return '🌅'
+    case 'lunch':
+      return '🍱'
+    case 'dinner':
+      return '🍽️'
     default:
-      return 'Meal'
+      return '🍽️'
   }
 }
 

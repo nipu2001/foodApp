@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwnerEmail() {
+      return isSignedIn() && (
+        request.auth.token.email == 'nipuninuwanthika785@gmail.com' ||
+        request.auth.token.email == 'nipuninuwanthika74@gmail.com'
+      );
+    }
+
+    // User profile documents
+    match /users/{uid} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Menu items: public read, owner-only write
+    match /menuItems/{itemId} {
+      allow read: if true;
+      allow create, update, delete: if isOwnerEmail();
+    }
+
+    // Orders: user can read/create their own, owner can manage all
+    match /orders/{orderId} {
+      allow create: if isSignedIn();
+      allow read, update: if isOwnerEmail() || (isSignedIn() && request.auth.uid == resource.data.userId);
+      allow delete: if isOwnerEmail();
+    }
+
+    // Ratings: signed-in users can create/read, owners can moderate
+    match /ratings/{ratingId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isOwnerEmail() || (isSignedIn() && request.auth.uid == resource.data.userId);
+    }
+
+    // Chat: signed-in users only
+    match /chats/{chatId}/{docPath=**} {
+      allow read, write: if isSignedIn();
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

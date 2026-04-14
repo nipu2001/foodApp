@@ -169,13 +169,13 @@ const MenuPage = () => {
               <p className="font-bold text-blue-800 dark:text-blue-300 mb-2">Ordering Times</p>
               <div className="text-blue-700 dark:text-blue-400 text-sm space-y-1">
                 <p className={isOrderingClosed('Breakfast') ? 'line-through opacity-60' : 'font-medium'}>
-                  🌅 Breakfast: Before 8:00 AM {isOrderingClosed('Breakfast') ? '(Closed)' : '(Open)'}
+                  🌅 Breakfast: Before 11:00 AM {isOrderingClosed('Breakfast') ? '(Closed)' : '(Open)'}
                 </p>
                 <p className={isOrderingClosed('Lunch') ? 'line-through opacity-60' : 'font-medium'}>
-                  🍱 Lunch: Before 10:00 AM {isOrderingClosed('Lunch') ? '(Closed)' : '(Open)'}
+                  🍱 Lunch: Before 4:00 PM {isOrderingClosed('Lunch') ? '(Closed)' : '(Open)'}
                 </p>
                 <p className={isOrderingClosed('Dinner') ? 'line-through opacity-60' : 'font-medium'}>
-                  🍽️ Dinner: Before 6:00 PM {isOrderingClosed('Dinner') ? '(Closed)' : '(Open)'}
+                  🍽️ Dinner: Before 11:00 PM {isOrderingClosed('Dinner') ? '(Closed)' : '(Open)'}
                 </p>
               </div>
             </div>

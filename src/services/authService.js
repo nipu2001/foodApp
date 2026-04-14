@@ -8,12 +8,30 @@ import {
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from '../config/firebase'
 
+const DEFAULT_ADMIN_EMAILS = [
+  'nipuninuwanthika785@gmail.com',
+  'nipuninuwanthika74@gmail.com'
+]
+
+const getAdminEmails = () => {
+  const configured = import.meta.env.VITE_ADMIN_EMAILS
+  if (!configured) return DEFAULT_ADMIN_EMAILS
+  const parsed = configured
+    .split(',')
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean)
+  return parsed.length > 0 ? parsed : DEFAULT_ADMIN_EMAILS
+}
+
+const isOwnerEmail = (email = '') => {
+  const normalized = email.trim().toLowerCase()
+  return getAdminEmails().includes(normalized)
+}
+
 // Register new user
 export const registerUser = async (email, password, name) => {
   try {
-    // Admin email - gets owner role automatically
-    const ADMIN_EMAIL = 'nipuninuwanthika785@gmail.com'
-    const userRole = email.toLowerCase().trim() === ADMIN_EMAIL ? 'owner' : 'customer'
+    const userRole = isOwnerEmail(email) ? 'owner' : 'customer'
     
     // Create user in Firebase Auth
     const userCredential = await createUserWithEmailAndPassword(auth, email, password)
@@ -23,14 +41,18 @@ export const registerUser = async (email, password, name) => {
     await updateProfile(user, { displayName: name })
 
     // Create user document in Firestore
-    await setDoc(doc(db, 'users', user.uid), {
-      uid: user.uid,
-      email: email,
-      name: name,
-      role: userRole,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    })
+    try {
+      await setDoc(doc(db, 'users', user.uid), {
+        uid: user.uid,
+        email: email,
+        name: name,
+        role: userRole,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      })
+    } catch (firestoreError) {
+      console.warn('Could not create Firestore user document. Continuing with Auth user.', firestoreError)
+    }
 
     return { 
       success: true, 
@@ -65,33 +87,35 @@ export const loginUser = async (email, password) => {
     const user = userCredential.user
     console.log('Firebase auth successful, user UID:', user.uid)
 
-    // Get user data from Firestore
-    const userDoc = await getDoc(doc(db, 'users', user.uid))
-    console.log('Firestore doc exists:', userDoc.exists())
-    
-    if (userDoc.exists()) {
-      const userData = userDoc.data()
-      console.log('User data from Firestore:', userData)
-      return { 
-        success: true, 
-        user: {
-          uid: user.uid,
-          email: user.email,
-          name: userData.name,
-          role: userData.role
+    // Try to enrich with Firestore profile, but do not fail auth if Firestore is blocked.
+    try {
+      const userDoc = await getDoc(doc(db, 'users', user.uid))
+      console.log('Firestore doc exists:', userDoc.exists())
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data()
+        console.log('User data from Firestore:', userData)
+        return {
+          success: true,
+          user: {
+            uid: user.uid,
+            email: user.email,
+            name: userData.name || user.displayName || email.split('@')[0],
+            role: userData.role || (isOwnerEmail(user.email || email) ? 'owner' : 'customer')
+          }
         }
       }
-    } else {
-      console.warn('User document not found in Firestore')
-      // User exists in Auth but not in Firestore
-      return { 
-        success: true, 
-        user: {
-          uid: user.uid,
-          email: user.email,
-          name: user.displayName || email.split('@')[0],
-          role: 'customer' // Default role
-        }
+    } catch (firestoreError) {
+      console.warn('Could not read Firestore user document. Using Auth fallback user.', firestoreError)
+    }
+
+    return {
+      success: true,
+      user: {
+        uid: user.uid,
+        email: user.email,
+        name: user.displayName || email.split('@')[0],
+        role: isOwnerEmail(user.email || email) ? 'owner' : 'customer'
       }
     }
   } catch (error) {
